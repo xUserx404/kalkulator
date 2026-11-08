@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroFuel - Aircraft Fuel Distribution Calculator</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Family Google: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Web App Manifest (Data URI) -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"AeroFuel Calculator","short_name":"AeroFuel","start_url":".","display":"standalone","background_color":"%23ffffff","theme_color":"%23B9F046","icons":[{"src":"https://placehold.co/192x192/111111/B9F046?text=AF","sizes":"192x192","type":"image/png"}]}'>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #FAFAFA;
+      color: #111827;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Neo-brutalist border styles inspired by reference */
+    .brutal-border {
+      border: 1.5px solid #111111;
+    }
+    .brutal-shadow {
+      box-shadow: 3px 3px 0px #111111;
+    }
+    .brutal-shadow-sm {
+      box-shadow: 2px 2px 0px #111111;
+    }
+    /* Hide scrollbars but keep smooth scroll */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row antialiased">
+
+  <!-- ============================= -->
+  <!-- SIDEBAR NAVIGATION (DESKTOP)  -->
+  <!-- ============================= -->
+  <aside class="hidden md:flex flex-col w-64 bg-white border-r brutal-border h-screen sticky top-0 p-5 justify-between z-20">
+    <div class="space-y-6">
+      <!-- App Brand / Logo (Border hitam pembungkus dihilangkan) -->
+      <div class="flex items-center space-x-3 pb-2">
+        <div class="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-[#B9F046] font-bold text-xl brutal-shadow-sm">
+          <i data-lucide="plane-takeoff" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg leading-tight tracking-tight">AeroFuel</h1>
+          <span class="text-[11px] font-semibold tracking-wider uppercase text-gray-500">Dispatch Suite</span>
+        </div>
+      </div>
+
+      <!-- Navigation Menus -->
+      <nav class="space-y-2">
+        <button id="nav-calc-btn" onclick="switchTab('calculator')" class="tab-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm brutal-border bg-[#B9F046] text-black brutal-shadow-sm transition-all">
+          <i data-lucide="calculator" class="w-4 h-4"></i>
+          <span>Fuel Calculator</span>
+        </button>
+
+        <button id="nav-history-btn" onclick="switchTab('history')" class="tab-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm text-gray-700 hover:bg-gray-100 hover:text-black transition-all">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span>Log Pengisian</span>
+        </button>
+
+        <button id="nav-fleet-btn" onclick="switchTab('fleet')" class="tab-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm text-gray-700 hover:bg-gray-100 hover:text-black transition-all">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span>Armada & Preset</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- User / Auth Info Status (Border pembatas atas dihilangkan) -->
+    <div class="space-y-3 pt-2">
+      <div id="auth-status-card" class="p-3 bg-gray-50 rounded-xl brutal-border text-xs">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-gray-500 font-medium">Status Pengguna</span>
+          <span id="role-badge" class="px-2 py-0.5 text-[10px] rounded-md font-bold bg-[#B9F046] text-black border border-black">Crew</span>
+        </div>
+        <p id="user-display-name" class="font-bold text-gray-900 truncate">Capt. Refueler (Demo)</p>
+      </div>
+
+      <button id="auth-action-btn" onclick="handleAuthAction()" class="w-full py-2.5 px-3 rounded-full brutal-border text-xs font-bold text-center flex items-center justify-center space-x-2 bg-white hover:bg-gray-100 transition-all">
+        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        <span id="auth-action-label">Keluar / Ganti Akun</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============================= -->
+  <!-- MOBILE TOP BAR HEADER         -->
+  <!-- ============================= -->
+  <header class="md:hidden flex items-center justify-between p-4 bg-white border-b brutal-border sticky top-0 z-20">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-8 h-8 rounded-lg bg-black flex items-center justify-center text-[#B9F046]">
+        <i data-lucide="plane" class="w-4 h-4"></i>
+      </div>
+      <span class="font-extrabold text-base tracking-tight">AeroFuel</span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <span id="mobile-role-badge" class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-[#B9F046] border border-black">DEMO</span>
+      <button onclick="handleAuthAction()" class="p-1.5 rounded-lg border border-black hover:bg-gray-100">
+        <i data-lucide="user" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================= -->
+  <!-- MAIN CONTENT CONTAINER       -->
+  <!-- ============================= -->
+  <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full pb-24 md:pb-8">
+
+    <!-- PREVIEW BANNER (Hanya tampil jika IS_PREVIEW = true) -->
+    <div id="preview-banner" class="mb-6 p-4 rounded-2xl bg-amber-50 border-2 border-dashed border-amber-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-amber-500 text-white rounded-lg">
+          <i data-lucide="info" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h4 class="font-bold text-amber-900 text-sm">Mode Uji Coba Aktif (Preview Mode)</h4>
+          <p class="text-xs text-amber-800">Aplikasi berjalan menggunakan state memori sementara. Data disimpan langsung saat saklar diubah ke Firebase.</p>
+        </div>
+      </div>
+      <span class="text-[11px] font-mono font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full border border-amber-400">IS_PREVIEW = true</span>
+    </div>
+
+    <!-- ===================================== -->
+    <!-- TAB 1: FUEL CALCULATOR & ALLOCATION  -->
+    <!-- ===================================== -->
+    <section id="tab-calculator" class="space-y-6">
+      
+      <!-- Top Title & Badge Section -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-block px-3 py-1 bg-[#B9F046] text-black rounded-md text-xs font-bold uppercase tracking-wider mb-2 border border-black">
+            Fuel Dispatcher Module
+          </div>
+          <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Kalkulator Alokasi Tangki</h2>
+          <p class="text-xs md:text-sm text-gray-500 mt-1">Pembagian bahan bakar otomatis berdasarkan prinsip aerodinamika & batas kapasitas sayap.</p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <label class="text-xs font-bold text-gray-600">Unit Satuan:</label>
+          <div class="inline-flex brutal-border rounded-full p-0.5 bg-white">
+            <button id="unit-kg-btn" onclick="setFuelUnit('KG')" class="px-3 py-1 text-xs font-bold rounded-full bg-black text-white">KG</button>
+            <button id="unit-lbs-btn" onclick="setFuelUnit('LBS')" class="px-3 py-1 text-xs font-medium text-gray-700">LBS</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bento Grid Input & Overview -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Flight Info & Total Fuel Input -->
+        <div class="bg-white rounded-2xl p-6 brutal-border brutal-shadow flex flex-col justify-between space-y-5">
+          <div>
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+              <h3 class="font-bold text-base flex items-center space-x-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-gray-700"></i>
+                <span>Parameter Pengisian</span>
+              </h3>
+              <span class="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono font-semibold" id="preset-badge">B737-800</span>
+            </div>
+
+            <!-- Form Inputs -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Pilih Tipe Pesawat</label>
+                <select id="calc-aircraft-select" onchange="onAircraftChange()" class="w-full px-3 py-2.5 rounded-xl bg-gray-50 brutal-border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-black">
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 mb-1">No. Flight</label>
+                  <input type="text" id="calc-flight-no" placeholder="misal: GA-412" value="GA-318" class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold uppercase">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 mb-1">Registrasi A/C</label>
+                  <input type="text" id="calc-aircraft-reg" placeholder="PK-GNA" value="PK-LKO" class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold uppercase">
+                </div>
+              </div>
+
+              <!-- Total Fuel Input (Large Display) -->
+              <div class="pt-2">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-gray-800">TOTAL FUEL DIPERLUKAN</label>
+                  <span class="text-[11px] text-gray-500 font-medium">Req / Planned</span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="calc-total-input" value="7700" oninput="calculateAllocation()" class="w-full pl-4 pr-16 py-3.5 rounded-xl bg-[#F4F5F7] brutal-border text-2xl font-bold font-mono-num focus:outline-none focus:ring-2 focus:ring-black">
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 bg-black text-[#B9F046] px-2 py-1 rounded-md text-xs font-bold font-mono-num" id="current-unit-label">
+                    KG
+                  </div>
+                </div>
+                <p class="text-[11px] text-gray-500 mt-1.5 flex items-center">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-green-600"></i>
+                  Mengikuti kaidah: Sayap 1 & 2 diisi penuh/seimbang sebelum tangki tengah.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Quick Buttons -->
+          <div class="pt-2 flex flex-col gap-2">
+            <button onclick="saveFuelLog()" class="w-full py-3 bg-black hover:bg-neutral-800 text-white rounded-full font-bold text-sm brutal-border brutal-shadow-sm flex items-center justify-center space-x-2 transition-all">
+              <i data-lucide="save" class="w-4 h-4 text-[#B9F046]"></i>
+              <span>Simpan ke Log Penerbangan</span>
+            </button>
+            <button onclick="resetCalculatorForm()" class="w-full py-2 bg-transparent text-gray-500 hover:text-black rounded-full text-xs font-bold transition-all">
+              Reset Input
+            </button>
+          </div>
+        </div>
+
+        <!-- Right 2-Columns: Airplane Tank Allocation Visualizer -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <!-- Aircraft Wing Schematic Card -->
+          <div class="bg-white rounded-2xl p-6 brutal-border brutal-shadow relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100">
+              <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 rounded-full bg-[#B9F046] border border-black inline-block"></span>
+                <h3 class="font-extrabold text-base tracking-tight">Skema Distribusi Tangki</h3>
+              </div>
+              <div class="text-xs text-gray-600 font-mono-num">
+                Kapasitas Maksimal: <span id="max-aircraft-cap" class="font-bold text-black">20,800 KG</span>
+              </div>
+            </div>
+
+            <!-- Visual Graphic Representation: 3 Tanks Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-2">
+              
+              <!-- TANK 1: LEFT WING -->
+              <div class="p-4 rounded-xl brutal-border bg-white flex flex-col justify-between relative group hover:bg-gray-50 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Left Wing</span>
+                  <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-gray-100 border border-black">MAIN 1</span>
+                </div>
+                
+                <div class="my-4">
+                  <div class="text-3xl font-extrabold font-mono-num" id="display-tank-1">3,800</div>
+                  <div class="text-xs text-gray-500 font-medium mt-0.5">
+                    Maks: <span id="limit-tank-1" class="font-bold text-gray-800">3,800</span> KG
+                  </div>
+                </div>
+
+                <!-- Fill Level Progress -->
+                <div>
+                  <div class="flex justify-between text-[11px] font-bold mb-1">
+                    <span class="text-gray-500">Persentase</span>
+                    <span id="percent-tank-1" class="font-mono-num">100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-gray-100 rounded-full border border-black overflow-hidden p-0.5">
+                    <div id="bar-tank-1" class="h-full bg-[#B9F046] rounded-full transition-all duration-300" style="width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TANK CENTER: CENTER TANK (High Contrast Neo-Brutalist Black Card) -->
+              <div class="p-4 rounded-xl brutal-border bg-black text-white flex flex-col justify-between relative brutal-shadow-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Fuselage Tank</span>
+                  <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-[#B9F046] text-black">CENTER</span>
+                </div>
+                
+                <div class="my-4">
+                  <div class="text-3xl font-extrabold font-mono-num text-[#B9F046]" id="display-tank-center">100</div>
+                  <div class="text-xs text-gray-400 font-medium mt-0.5">
+                    Maks: <span id="limit-tank-center" class="font-bold text-white">13,200</span> KG
+                  </div>
+                </div>
+
+                <!-- Fill Level Progress -->
+                <div>
+                  <div class="flex justify-between text-[11px] font-bold mb-1">
+                    <span class="text-gray-400">Persentase</span>
+                    <span id="percent-tank-center" class="font-mono-num text-[#B9F046]">0.8%</span>
+                  </div>
+                  <div class="w-full h-3 bg-neutral-800 rounded-full border border-neutral-700 overflow-hidden p-0.5">
+                    <div id="bar-tank-center" class="h-full bg-[#B9F046] rounded-full transition-all duration-300" style="width: 1%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TANK 2: RIGHT WING -->
+              <div class="p-4 rounded-xl brutal-border bg-white flex flex-col justify-between relative group hover:bg-gray-50 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Right Wing</span>
+                  <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-gray-100 border border-black">MAIN 2</span>
+                </div>
+                
+                <div class="my-4">
+                  <div class="text-3xl font-extrabold font-mono-num" id="display-tank-2">3,800</div>
+                  <div class="text-xs text-gray-500 font-medium mt-0.5">
+                    Maks: <span id="limit-tank-2" class="font-bold text-gray-800">3,800</span> KG
+                  </div>
+                </div>
+
+                <!-- Fill Level Progress -->
+                <div>
+                  <div class="flex justify-between text-[11px] font-bold mb-1">
+                    <span class="text-gray-500">Persentase</span>
+                    <span id="percent-tank-2" class="font-mono-num">100%</span>
+                  </div>
+                  <div class="w-full h-3 bg-gray-100 rounded-full border border-black overflow-hidden p-0.5">
+                    <div id="bar-tank-2" class="h-full bg-[#B9F046] rounded-full transition-all duration-300" style="width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Balance Status & Warning Indicators -->
+            <div id="fuel-alert-box" class="mt-4 p-3 rounded-xl bg-gray-50 brutal-border flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+                <span id="fuel-alert-text" class="font-bold text-gray-800">Keseimbangan sayap lateral seimbang (Lateral Imbalance: 0 KG).</span>
+              </div>
+              <span id="fuel-status-tag" class="px-2 py-0.5 bg-green-100 text-green-800 font-bold rounded">NORMAL</span>
+            </div>
+          </div>
+
+          <!-- Bottom Summary Cards (Bento Style) -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <div class="p-4 bg-white rounded-2xl brutal-border brutal-shadow-sm">
+              <span class="text-xs font-bold text-gray-500 block mb-1">TOTAL WING FUEL</span>
+              <div class="text-xl font-extrabold font-mono-num" id="sum-wing-fuel">7,600 KG</div>
+              <p class="text-[11px] text-gray-500 mt-1">Sayap Kiri + Kanan</p>
+            </div>
+
+            <div class="p-4 bg-white rounded-2xl brutal-border brutal-shadow-sm">
+              <span class="text-xs font-bold text-gray-500 block mb-1">CENTER TANK FUEL</span>
+              <div class="text-xl font-extrabold font-mono-num" id="sum-center-fuel">100 KG</div>
+              <p class="text-[11px] text-gray-500 mt-1">Bahan bakar cadangan</p>
+            </div>
+
+            <div class="p-4 bg-white rounded-2xl brutal-border brutal-shadow-sm">
+              <span class="text-xs font-bold text-gray-500 block mb-1">SISA KAPASITAS</span>
+              <div class="text-xl font-extrabold font-mono-num text-gray-700" id="sum-remaining-cap">13,100 KG</div>
+              <p class="text-[11px] text-gray-500 mt-1">Daya tampung tersisa</p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ===================================== -->
+    <!-- TAB 2: FUEL LOGS & HISTORY           -->
+    <!-- ===================================== -->
+    <section id="tab-history" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-block px-3 py-1 bg-black text-[#B9F046] rounded-md text-xs font-bold uppercase tracking-wider mb-2">
+            Refueling Records
+          </div>
+          <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Riwayat Pengisian Armada</h2>
+          <p class="text-xs md:text-sm text-gray-500 mt-1">Catatan penerbangan dan audit pemenuhan tangki bahan bakar.</p>
+        </div>
+
+        <button onclick="exportLogsToCSV()" class="px-4 py-2.5 rounded-full brutal-border text-xs font-bold bg-white hover:bg-gray-100 brutal-shadow-sm flex items-center space-x-2 self-start sm:self-auto">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Ekspor CSV</span>
+        </button>
+      </div>
+
+      <!-- Logs Table Card -->
+      <div class="bg-white rounded-2xl brutal-border brutal-shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 border-b brutal-border text-xs uppercase font-extrabold text-gray-700">
+              <tr>
+                <th class="p-3.5">Waktu</th>
+                <th class="p-3.5">Flight / Reg</th>
+                <th class="p-3.5">Pesawat</th>
+                <th class="p-3.5 text-right">Main 1</th>
+                <th class="p-3.5 text-right">Center</th>
+                <th class="p-3.5 text-right">Main 2</th>
+                <th class="p-3.5 text-right">Total Fuel</th>
+                <th class="p-3.5 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-gray-200 font-medium">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty state placeholder -->
+        <div id="logs-empty-state" class="hidden py-12 text-center">
+          <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400 mb-3 border border-black">
+            <i data-lucide="inbox" class="w-6 h-6"></i>
+          </div>
+          <p class="text-sm font-bold text-gray-700">Belum ada riwayat pengisian</p>
+          <p class="text-xs text-gray-500">Lakukan perhitungan dan simpan log dari menu Fuel Calculator.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================== -->
+    <!-- TAB 3: FLEET & PRESET CONFIGURATION   -->
+    <!-- ===================================== -->
+    <section id="tab-fleet" class="hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-block px-3 py-1 bg-[#B9F046] text-black rounded-md text-xs font-bold uppercase tracking-wider mb-2 border border-black">
+            Fleet Configuration
+          </div>
+          <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Preset Kapasitas Pesawat</h2>
+          <p class="text-xs md:text-sm text-gray-500 mt-1">Konfigurasi batas maksimum per kompartemen tangki sayap dan tengah.</p>
+        </div>
+
+        <button onclick="openAddAircraftModal()" class="px-4 py-2.5 rounded-full brutal-border text-xs font-bold bg-black text-[#B9F046] brutal-shadow-sm flex items-center space-x-2 self-start sm:self-auto">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Tambah Preset Pesawat</span>
+        </button>
+      </div>
+
+      <!-- Fleet Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="fleet-card-container">
+        <!-- Rendered via JS -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================= -->
+  <!-- MOBILE BOTTOM NAVIGATION BAR  -->
+  <!-- ============================= -->
+  <nav class="md:hidden fixed bottom-3 left-4 right-4 bg-white/95 backdrop-blur-md border brutal-border rounded-2xl py-2 px-3 flex justify-around items-center brutal-shadow z-30">
+    <button onclick="switchTab('calculator')" id="mobile-tab-calc" class="flex flex-col items-center p-1.5 text-black">
+      <i data-lucide="calculator" class="w-5 h-5"></i>
+      <span class="text-[10px] font-extrabold mt-0.5">Kalkulator</span>
+    </button>
+    <button onclick="switchTab('history')" id="mobile-tab-history" class="flex flex-col items-center p-1.5 text-gray-500">
+      <i data-lucide="history" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Riwayat</span>
+    </button>
+    <button onclick="switchTab('fleet')" id="mobile-tab-fleet" class="flex flex-col items-center p-1.5 text-gray-500">
+      <i data-lucide="sliders" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Armada</span>
+    </button>
+  </nav>
+
+  <!-- ============================= -->
+  <!-- MODAL: ADD / EDIT AIRCRAFT    -->
+  <!-- ============================= -->
+  <div id="aircraft-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl brutal-border brutal-shadow w-full max-w-md p-6 relative">
+      <div class="flex items-center justify-between pb-3 border-b brutal-border mb-4">
+        <h3 class="font-extrabold text-lg" id="modal-aircraft-title">Tambah Model Pesawat</h3>
+        <button onclick="closeAircraftModal()" class="w-8 h-8 rounded-full border border-black flex items-center justify-center hover:bg-gray-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="aircraft-form" onsubmit="handleSaveAircraft(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Kode Pesawat (ICAO/IATA)</label>
+          <input type="text" id="modal-plane-code" placeholder="misal: B738 / A320" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold uppercase">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Nama Deskripsi Pesawat</label>
+          <input type="text" id="modal-plane-name" placeholder="misal: Boeing 737-800 NextGen" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-semibold">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Maks. Wing 1 (KG)</label>
+            <input type="number" id="modal-plane-w1" placeholder="3800" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold font-mono-num">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Maks. Wing 2 (KG)</label>
+            <input type="number" id="modal-plane-w2" placeholder="3800" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold font-mono-num">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Maks. Tangki Tengah (KG)</label>
+          <input type="number" id="modal-plane-center" placeholder="13200" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-bold font-mono-num">
+        </div>
+
+        <div class="pt-3 flex space-x-3">
+          <button type="button" onclick="closeAircraftModal()" class="w-1/2 py-2.5 rounded-full brutal-border text-xs font-bold hover:bg-gray-100">Batal</button>
+          <button type="submit" class="w-1/2 py-2.5 rounded-full brutal-border bg-black text-[#B9F046] text-xs font-bold">Simpan Preset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================= -->
+  <!-- MODAL: LOGIN / AUTHENTICATION -->
+  <!-- ============================= -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl brutal-border brutal-shadow w-full max-w-sm p-6 relative">
+      <div class="text-center pb-3 border-b brutal-border mb-4">
+        <div class="w-10 h-10 rounded-xl bg-black text-[#B9F046] flex items-center justify-center mx-auto mb-2 border border-black">
+          <i data-lucide="lock" class="w-5 h-5"></i>
+        </div>
+        <h3 class="font-extrabold text-lg">Akses Dispatcher</h3>
+        <p class="text-xs text-gray-500">Pilih masuk sebagai Admin atau Kru Operasional</p>
+      </div>
+
+      <div class="flex border brutal-border rounded-full p-1 mb-4 bg-gray-100">
+        <button id="auth-role-crew-tab" onclick="setAuthRoleTab('crew')" class="w-1/2 py-1.5 text-xs font-bold rounded-full bg-black text-white">Petugas Kru</button>
+        <button id="auth-role-admin-tab" onclick="setAuthRoleTab('admin')" class="w-1/2 py-1.5 text-xs font-medium text-gray-700 rounded-full">Admin (Auth)</button>
+      </div>
+
+      <!-- User Crew Form -->
+      <form id="crew-login-form" onsubmit="handleCrewLogin(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">ID Kru / Username</label>
+          <input type="text" id="login-crew-id" value="crew_alpha" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-semibold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">PIN / Password</label>
+          <input type="password" id="login-crew-pin" value="1234" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-semibold">
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-full brutal-border bg-[#B9F046] text-black text-xs font-extrabold mt-2 hover:bg-[#a6db3b]">
+          Masuk Sebagai Kru
+        </button>
+      </form>
+
+      <!-- Admin Form -->
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Email Administrator</label>
+          <input type="email" id="login-admin-email" placeholder="admin@aerofuel.com" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-semibold">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+          <input type="password" id="login-admin-pass" required class="w-full px-3 py-2 rounded-xl bg-gray-50 brutal-border text-sm font-semibold">
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-full brutal-border bg-black text-white text-xs font-bold mt-2">
+          Masuk via Firebase Auth
+        </button>
+      </form>
+
+      <div class="mt-4 pt-3 border-t border-gray-200 text-center">
+        <button onclick="closeAuthModal()" class="text-xs text-gray-500 font-bold hover:underline">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= -->
+  <!-- APPLICATION SCRIPT (MODULE)   -->
+  <!-- ============================= -->
+  <script type="module">
+    // ==========================================
+    // 1. SAKLAR MODE & FIREBASE CONFIG
+    // ==========================================
+    const IS_PREVIEW = false; // Ubah menjadi false SAAT DEPLOY / PUBLISH agar terhubung murni ke Firebase
+
+    const firebaseConfig = {
+     apiKey: "AIzaSyDPSWpnnJoOSRqWtcpsroK62wOmMvowm44",
+  authDomain: "fuelkalkulator.firebaseapp.com",
+  projectId: "fuelkalkulator",
+  storageBucket: "fuelkalkulator.firebasestorage.app",
+  messagingSenderId: "1074399298989",
+  appId: "1:1074399298989:web:08f836119bfd79115a8d24"
+      
+    };
+
+    // Firebase Module References (Hanya diimpor saat IS_PREVIEW = false)
+    let auth = null;
+    let db = null;
+    let fbApp = null;
+
+    if (!IS_PREVIEW) {
+      // Import Firebase modules secara dinamis jika mode produksi aktif
+      import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js").then(({ initializeApp }) => {
+        fbApp = initializeApp(firebaseConfig);
+        return Promise.all([
+          import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"),
+          import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")
+        ]);
+      }).then(([{ getAuth, onAuthStateChanged }, { getFirestore }]) => {
+        auth = getAuth(fbApp);
+        db = getFirestore(fbApp);
+
+        // Pantau sesi Auth
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUser = { role: 'admin', name: user.email || 'Admin' };
+          } else {
+            currentUser = null;
+          }
+          updateAuthUI();
+          loadDataFromFirestore();
+        });
+      }).catch(err => {
+        console.error("Firebase Init Error:", err);
+      });
+    }
+
+    // ==========================================
+    // 2. STATE APLIKASI
+    // ==========================================
+    let currentUnit = 'KG'; // 'KG' atau 'LBS'
+    let currentTab = 'calculator';
+
+    // Current Session
+    let currentUser = {
+      role: 'crew',
+      name: 'Petugas Demo (B738)'
+    };
+
+    // Presets Pesawat (Hanya 2 data acuan ringkas)
+    let aircraftList = [
+      {
+        id: 'B738',
+        code: 'B738',
+        name: 'Boeing 737-800 NextGen',
+        maxWing1: 3800,
+        maxWing2: 3800,
+        maxCenter: 13200
+      },
+      {
+        id: 'A320',
+        code: 'A320',
+        name: 'Airbus A320-200 Neo/Ceo',
+        maxWing1: 5400,
+        maxWing2: 5400,
+        maxCenter: 8200
+      }
+    ];
+
+    // Riwayat Refueling (Hanya 1 dummy log awal jika IS_PREVIEW)
+    let fuelLogs = IS_PREVIEW ? [
+      {
+        id: 'log-001',
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        date: new Date().toLocaleDateString('id-ID'),
+        flightNo: 'GA-318',
+        aircraftReg: 'PK-LKO',
+        aircraftCode: 'B738',
+        unit: 'KG',
+        tank1: 3800,
+        tankCenter: 100,
+        tank2: 3800,
+        total: 7700,
+        refueler: 'Capt. Refueler (Demo)'
+      }
+    ] : [];
+
+    // ==========================================
+    // 3. LOGIKA KALKULATOR DISTRIBUSI BAHAN BAKAR
+    // ==========================================
+    /**
+     * Logic Boeing 737-800 & Pesawat Komersial Umum:
+     * - Kapasitas Sayap (Wing Tanks) harus diisi seimbang terlebih dahulu.
+     * - Misal total 7.700 KG pada B738 (Maks W1: 3.800, Maks W2: 3.800):
+     *   Wing 1 terisi 3.800 KG
+     *   Wing 2 terisi 3.800 KG
+     *   Total sayap = 7.600 KG
+     *   Sisa (7.700 - 7.600) = 100 KG dialokasikan ke Center Tank.
+     * 
+     * - Jika total < total kapasitas kedua sayap (misal 5.000 KG):
+     *   Wing 1 = 2.500 KG
+     *   Wing 2 = 2.500 KG
+     *   Center Tank = 0 KG
+     */
+    window.calculateAllocation = function() {
+      const selectedCode = document.getElementById('calc-aircraft-select').value;
+      const aircraft = aircraftList.find(a => a.code === selectedCode) || aircraftList[0];
+      
+      const totalInput = parseFloat(document.getElementById('calc-total-input').value) || 0;
+      
+      let tank1 = 0;
+      let tank2 = 0;
+      let tankCenter = 0;
+
+      const maxWingsCombined = aircraft.maxWing1 + aircraft.maxWing2;
+      const totalAircraftCap = maxWingsCombined + aircraft.maxCenter;
+
+      if (totalInput <= maxWingsCombined) {
+        // Bahan bakar mencukupi diisi hanya di sayap kiri & kanan secara simetris
+        const half = totalInput / 2;
+        tank1 = Math.min(half, aircraft.maxWing1);
+        tank2 = Math.min(half, aircraft.maxWing2);
+        tankCenter = 0;
+      } else {
+        // Sayap terisi penuh sesuai batas maksimal masing-masing
+        tank1 = aircraft.maxWing1;
+        tank2 = aircraft.maxWing2;
+        // Sisanya masuk ke Center Tank
+        const remainder = totalInput - maxWingsCombined;
+        tankCenter = Math.min(remainder, aircraft.maxCenter);
+      }
+
+      // Update UI Tampilan Angka
+      document.getElementById('display-tank-1').innerText = tank1.toLocaleString();
+      document.getElementById('display-tank-2').innerText = tank2.toLocaleString();
+      document.getElementById('display-tank-center').innerText = tankCenter.toLocaleString();
+
+      // Progress bar & Persentase
+      const pct1 = Math.min(100, (tank1 / aircraft.maxWing1) * 100);
+      const pct2 = Math.min(100, (tank2 / aircraft.maxWing2) * 100);
+      const pctC = Math.min(100, (tankCenter / aircraft.maxCenter) * 100);
+
+      document.getElementById('percent-tank-1').innerText = `${pct1.toFixed(1)}%`;
+      document.getElementById('percent-tank-2').innerText = `${pct2.toFixed(1)}%`;
+      document.getElementById('percent-tank-center').innerText = `${pctC.toFixed(1)}%`;
+
+      document.getElementById('bar-tank-1').style.width = `${pct1}%`;
+      document.getElementById('bar-tank-2').style.width = `${pct2}%`;
+      document.getElementById('bar-tank-center').style.width = `${pctC}%`;
+
+      // Update Summary Bento
+      const totalWing = tank1 + tank2;
+      const remainingCap = Math.max(0, totalAircraftCap - totalInput);
+
+      document.getElementById('sum-wing-fuel').innerText = `${totalWing.toLocaleString()} ${currentUnit}`;
+      document.getElementById('sum-center-fuel').innerText = `${tankCenter.toLocaleString()} ${currentUnit}`;
+      document.getElementById('sum-remaining-cap').innerText = `${remainingCap.toLocaleString()} ${currentUnit}`;
+
+      // Validasi Imbalance & Overcapacity Check
+      const imbalance = Math.abs(tank1 - tank2);
+      const alertBox = document.getElementById('fuel-alert-box');
+      const alertText = document.getElementById('fuel-alert-text');
+      const statusTag = document.getElementById('fuel-status-tag');
+
+      if (totalInput > totalAircraftCap) {
+        alertBox.className = "mt-4 p-3 rounded-xl bg-red-50 brutal-border border-red-600 flex items-center justify-between text-xs";
+        alertText.className = "font-bold text-red-800";
+        alertText.innerHTML = `Peringatan: Total bahan bakar melebihi kapasitas tangki maksimum (${totalAircraftCap.toLocaleString()} ${currentUnit})!`;
+        statusTag.className = "px-2 py-0.5 bg-red-600 text-white font-bold rounded";
+        statusTag.innerText = "OVERCAPACITY";
+      } else if (imbalance > 50) {
+        alertBox.className = "mt-4 p-3 rounded-xl bg-amber-50 brutal-border border-amber-600 flex items-center justify-between text-xs";
+        alertText.className = "font-bold text-amber-800";
+        alertText.innerHTML = `Perhatian: Selisih berat antar sayap ${imbalance.toLocaleString()} ${currentUnit}. Disarankan balance check.`;
+        statusTag.className = "px-2 py-0.5 bg-amber-500 text-white font-bold rounded";
+        statusTag.innerText = "IMBALANCE";
+      } else {
+        alertBox.className = "mt-4 p-3 rounded-xl bg-gray-50 brutal-border flex items-center justify-between text-xs";
+        alertText.className = "font-bold text-gray-800";
+        alertText.innerText = "Keseimbangan sayap lateral seimbang (Lateral Imbalance: 0 KG).";
+        statusTag.className = "px-2 py-0.5 bg-green-100 text-green-800 font-bold rounded border border-green-800";
+        statusTag.innerText = "OPTIMAL";
+      }
+    };
+
+    // Saat dropdown pesawat diubah
+    window.onAircraftChange = function() {
+      const selectedCode = document.getElementById('calc-aircraft-select').value;
+      const aircraft = aircraftList.find(a => a.code === selectedCode);
+      if (!aircraft) return;
+
+      document.getElementById('preset-badge').innerText = aircraft.code;
+      document.getElementById('limit-tank-1').innerText = aircraft.maxWing1.toLocaleString();
+      document.getElementById('limit-tank-2').innerText = aircraft.maxWing2.toLocaleString();
+      document.getElementById('limit-tank-center').innerText = aircraft.maxCenter.toLocaleString();
+
+      const totalCap = aircraft.maxWing1 + aircraft.maxWing2 + aircraft.maxCenter;
+      document.getElementById('max-aircraft-cap').innerText = `${totalCap.toLocaleString()} ${currentUnit}`;
+
+      window.calculateAllocation();
+    };
+
+    // Ganti Satuan Unit (KG / LBS)
+    window.setFuelUnit = function(unit) {
+      currentUnit = unit;
+      document.getElementById('current-unit-label').innerText = unit;
+
+      if (unit === 'KG') {
+        document.getElementById('unit-kg-btn').className = "px-3 py-1 text-xs font-bold rounded-full bg-black text-white";
+        document.getElementById('unit-lbs-btn').className = "px-3 py-1 text-xs font-medium text-gray-700";
+      } else {
+        document.getElementById('unit-lbs-btn').className = "px-3 py-1 text-xs font-bold rounded-full bg-black text-white";
+        document.getElementById('unit-kg-btn').className = "px-3 py-1 text-xs font-medium text-gray-700";
+      }
+
+      window.calculateAllocation();
+    };
+
+    window.resetCalculatorForm = function() {
+      document.getElementById('calc-total-input').value = "7700";
+      document.getElementById('calc-flight-no').value = "GA-318";
+      document.getElementById('calc-aircraft-reg').value = "PK-LKO";
+      window.calculateAllocation();
+    };
+
+    // ==========================================
+    // 4. LOGS & STORAGE ACTIONS
+    // ==========================================
+    window.saveFuelLog = async function() {
+      const flightNo = document.getElementById('calc-flight-no').value.trim() || 'N/A';
+      const aircraftReg = document.getElementById('calc-aircraft-reg').value.trim() || 'N/A';
+      const aircraftCode = document.getElementById('calc-aircraft-select').value;
+      const totalFuel = parseFloat(document.getElementById('calc-total-input').value) || 0;
+
+      const aircraft = aircraftList.find(a => a.code === aircraftCode) || aircraftList[0];
+      const maxWings = aircraft.maxWing1 + aircraft.maxWing2;
+      let t1 = 0, t2 = 0, tc = 0;
+
+      if (totalFuel <= maxWings) {
+        t1 = Math.min(totalFuel / 2, aircraft.maxWing1);
+        t2 = Math.min(totalFuel / 2, aircraft.maxWing2);
+        tc = 0;
+      } else {
+        t1 = aircraft.maxWing1;
+        t2 = aircraft.maxWing2;
+        tc = Math.min(totalFuel - maxWings, aircraft.maxCenter);
+      }
+
+      const newLog = {
+        id: 'log-' + Date.now(),
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        date: new Date().toLocaleDateString('id-ID'),
+        flightNo,
+        aircraftReg,
+        aircraftCode,
+        unit: currentUnit,
+        tank1: t1,
+        tankCenter: tc,
+        tank2: t2,
+        total: totalFuel,
+        refueler: currentUser ? currentUser.name : 'Crew Dispatcher'
+      };
+
+      if (IS_PREVIEW) {
+        // In-Memory state
+        fuelLogs.unshift(newLog);
+        renderLogsTable();
+        showNotification("Berhasil menyimpan log pengisian (Mode Preview)!");
+      } else {
+        // Mode Firestore Produksi
+        try {
+          const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+          await addDoc(collection(db, "fuel_logs"), {
+            ...newLog,
+            createdAt: serverTimestamp()
+          });
+          showNotification("Berhasil menyimpan log ke database Firebase!");
+          loadDataFromFirestore();
+        } catch (e) {
+          console.error("Gagal simpan log:", e);
+          showNotification("Gagal menyimpan data ke database.", true);
+        }
+      }
+    };
+
+    window.deleteLog = function(logId) {
+      if (IS_PREVIEW) {
+        fuelLogs = fuelLogs.filter(l => l.id !== logId);
+        renderLogsTable();
+        showNotification("Log berhasil dihapus.");
+      } else {
+        // Firestore delete
+        import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, deleteDoc }) => {
+          return deleteDoc(doc(db, "fuel_logs", logId));
+        }).then(() => {
+          showNotification("Log dihapus dari database.");
+          loadDataFromFirestore();
+        }).catch(err => console.error(err));
+      }
+    };
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logs-table-body');
+      const emptyState = document.getElementById('logs-empty-state');
+
+      if (!fuelLogs || fuelLogs.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = fuelLogs.map(item => `
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="p-3.5 text-xs text-gray-500">
+            <span class="font-bold text-gray-900 block">${item.time}</span>
+            <span>${item.date}</span>
+          </td>
+          <td class="p-3.5 font-bold">
+            <span class="px-2 py-0.5 bg-gray-100 rounded text-xs border border-gray-300 font-mono">${item.flightNo}</span>
+            <span class="text-xs text-gray-500 block mt-0.5">${item.aircraftReg}</span>
+          </td>
+          <td class="p-3.5 font-bold text-xs">${item.aircraftCode}</td>
+          <td class="p-3.5 text-right font-mono font-semibold">${item.tank1.toLocaleString()}</td>
+          <td class="p-3.5 text-right font-mono font-bold text-[#4d7c0f] bg-green-50/50">${item.tankCenter.toLocaleString()}</td>
+          <td class="p-3.5 text-right font-mono font-semibold">${item.tank2.toLocaleString()}</td>
+          <td class="p-3.5 text-right font-mono font-extrabold text-black">${item.total.toLocaleString()} ${item.unit}</td>
+          <td class="p-3.5 text-center">
+            <button onclick="deleteLog('${item.id}')" class="p-1 hover:text-red-600 rounded">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    window.exportLogsToCSV = function() {
+      if (fuelLogs.length === 0) {
+        showNotification("Tidak ada data log untuk diekspor.", true);
+        return;
+      }
+      let csv = "Waktu,Tanggal,FlightNo,Registrasi,Pesawat,Tank1,CenterTank,Tank2,Total,Unit,Refueler\n";
+      fuelLogs.forEach(l => {
+        csv += `"${l.time}","${l.date}","${l.flightNo}","${l.aircraftReg}","${l.aircraftCode}",${l.tank1},${l.tankCenter},${l.tank2},${l.total},"${l.unit}","${l.refueler}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `aerofuel_logs_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // ==========================================
+    // 5. FLEET / AIRCRAFT PRESET ACTIONS
+    // ==========================================
+    function renderFleetCards() {
+      const container = document.getElementById('fleet-card-container');
+      const select = document.getElementById('calc-aircraft-select');
+
+      // Update options di calculator
+      select.innerHTML = aircraftList.map(a => `
+        <option value="${a.code}">${a.code} - ${a.name}</option>
+      `).join('');
+
+      // Render cards
+      container.innerHTML = aircraftList.map(a => {
+        const total = a.maxWing1 + a.maxWing2 + a.maxCenter;
+        return `
+          <div class="bg-white rounded-2xl p-5 brutal-border brutal-shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#B9F046] text-black border border-black">${a.code}</span>
+                <span class="text-xs text-gray-500 font-mono">Max: ${total.toLocaleString()} KG</span>
+              </div>
+              <h4 class="font-extrabold text-base mb-3">${a.name}</h4>
+
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between py-1 border-b border-gray-100">
+                  <span class="text-gray-500 font-medium">Main Tank 1 (Left Wing):</span>
+                  <span class="font-bold font-mono">${a.maxWing1.toLocaleString()} KG</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-100">
+                  <span class="text-gray-500 font-medium">Center Tank:</span>
+                  <span class="font-bold font-mono">${a.maxCenter.toLocaleString()} KG</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-100">
+                  <span class="text-gray-500 font-medium">Main Tank 2 (Right Wing):</span>
+                  <span class="font-bold font-mono">${a.maxWing2.toLocaleString()} KG</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 mt-2">
+              <button onclick="selectFleetForCalc('${a.code}')" class="w-full py-2 bg-gray-100 hover:bg-black hover:text-white rounded-full text-xs font-bold transition-colors border border-black">
+                Gunakan di Kalkulator
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    window.selectFleetForCalc = function(code) {
+      document.getElementById('calc-aircraft-select').value = code;
+      window.switchTab('calculator');
+      window.onAircraftChange();
+    };
+
+    window.openAddAircraftModal = function() {
+      document.getElementById('aircraft-modal').classList.remove('hidden');
+    };
+
+    window.closeAircraftModal = function() {
+      document.getElementById('aircraft-modal').classList.add('hidden');
+    };
+
+    window.handleSaveAircraft = function(e) {
+      e.preventDefault();
+      const code = document.getElementById('modal-plane-code').value.toUpperCase().trim();
+      const name = document.getElementById('modal-plane-name').value.trim();
+      const w1 = parseFloat(document.getElementById('modal-plane-w1').value) || 0;
+      const w2 = parseFloat(document.getElementById('modal-plane-w2').value) || 0;
+      const center = parseFloat(document.getElementById('modal-plane-center').value) || 0;
+
+      const newPlane = { id: code, code, name, maxWing1: w1, maxWing2: w2, maxCenter: center };
+
+      if (IS_PREVIEW) {
+        aircraftList.push(newPlane);
+        renderFleetCards();
+        closeAircraftModal();
+        showNotification("Preset armada baru ditambahkan!");
+      } else {
+        import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, setDoc }) => {
+          return setDoc(doc(db, "aircraft_types", code), newPlane);
+        }).then(() => {
+          closeAircraftModal();
+          showNotification("Preset tersimpan di database!");
+          loadDataFromFirestore();
+        }).catch(err => console.error(err));
+      }
+    };
+
+    // ==========================================
+    // 6. AUTHENTICATION & ACCESS CONTROL
+    // ==========================================
+    window.handleAuthAction = function() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+    };
+
+    window.closeAuthModal = function() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    };
+
+    window.setAuthRoleTab = function(type) {
+      if (type === 'crew') {
+        document.getElementById('auth-role-crew-tab').className = "w-1/2 py-1.5 text-xs font-bold rounded-full bg-black text-white";
+        document.getElementById('auth-role-admin-tab').className = "w-1/2 py-1.5 text-xs font-medium text-gray-700 rounded-full";
+        document.getElementById('crew-login-form').classList.remove('hidden');
+        document.getElementById('admin-login-form').classList.add('hidden');
+      } else {
+        document.getElementById('auth-role-admin-tab').className = "w-1/2 py-1.5 text-xs font-bold rounded-full bg-black text-white";
+        document.getElementById('auth-role-crew-tab').className = "w-1/2 py-1.5 text-xs font-medium text-gray-700 rounded-full";
+        document.getElementById('admin-login-form').classList.remove('hidden');
+        document.getElementById('crew-login-form').classList.add('hidden');
+      }
+    };
+
+    window.handleCrewLogin = function(e) {
+      e.preventDefault();
+      const id = document.getElementById('login-crew-id').value;
+      currentUser = {
+        role: 'crew',
+        name: `Kru (${id})`
+      };
+      updateAuthUI();
+      closeAuthModal();
+      showNotification(`Selamat datang, ${currentUser.name}!`);
+    };
+
+    window.handleAdminLogin = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-admin-email').value;
+      const pass = document.getElementById('login-admin-pass').value;
+
+      if (IS_PREVIEW) {
+        currentUser = { role: 'admin', name: `Admin (${email})` };
+        updateAuthUI();
+        closeAuthModal();
+        showNotification("Masuk sebagai Admin (Preview Mode)!");
+      } else {
+        try {
+          const { signInWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+          await signInWithEmailAndPassword(auth, email, pass);
+          closeAuthModal();
+          showNotification("Login Admin Firebase Berhasil!");
+        } catch (err) {
+          showNotification("Gagal login: " + err.message, true);
+        }
+      }
+    };
+
+    function updateAuthUI() {
+      const userDisplay = document.getElementById('user-display-name');
+      const roleBadge = document.getElementById('role-badge');
+      const mobileBadge = document.getElementById('mobile-role-badge');
+
+      if (currentUser) {
+        userDisplay.innerText = currentUser.name;
+        roleBadge.innerText = currentUser.role.toUpperCase();
+        mobileBadge.innerText = currentUser.role.toUpperCase();
+      } else {
+        userDisplay.innerText = "Tamu / Belum Login";
+        roleBadge.innerText = "GUEST";
+        mobileBadge.innerText = "GUEST";
+      }
+    }
+
+    // ==========================================
+    // 7. FIRESTORE REALTIME SYNC (Saat IS_PREVIEW = false)
+    // ==========================================
+    async function loadDataFromFirestore() {
+      if (IS_PREVIEW || !db) return;
+
+      try {
+        const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        
+        // Load Fleet Presets
+        const fleetSnap = await getDocs(collection(db, "aircraft_types"));
+        if (!fleetSnap.empty) {
+          aircraftList = [];
+          fleetSnap.forEach(doc => aircraftList.push({ id: doc.id, ...doc.data() }));
+          renderFleetCards();
+          onAircraftChange();
+        }
+
+        // Load Fuel Logs
+        const logsSnap = await getDocs(collection(db, "fuel_logs"));
+        fuelLogs = [];
+        logsSnap.forEach(doc => fuelLogs.push({ id: doc.id, ...doc.data() }));
+        // Urutkan in-memory
+        fuelLogs.sort((a,b) => (b.id > a.id ? 1 : -1));
+        renderLogsTable();
+
+      } catch (err) {
+        console.error("Firestore Fetch Error:", err);
+      }
+    }
+
+    // ==========================================
+    // 8. TAB NAVIGATION LOGIC
+    // ==========================================
+    window.switchTab = function(tabName) {
+      currentTab = tabName;
+      ['calculator', 'history', 'fleet'].forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          sec.classList.remove('hidden');
+        } else {
+          sec.classList.add('hidden');
+        }
+      });
+
+      // Update Desktop Buttons
+      const calcBtn = document.getElementById('nav-calc-btn');
+      const histBtn = document.getElementById('nav-history-btn');
+      const fleetBtn = document.getElementById('nav-fleet-btn');
+
+      const activeClass = "tab-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-sm brutal-border bg-[#B9F046] text-black brutal-shadow-sm transition-all";
+      const inactiveClass = "tab-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm text-gray-700 hover:bg-gray-100 hover:text-black transition-all";
+
+      calcBtn.className = tabName === 'calculator' ? activeClass : inactiveClass;
+      histBtn.className = tabName === 'history' ? activeClass : inactiveClass;
+      fleetBtn.className = tabName === 'fleet' ? activeClass : inactiveClass;
+
+      // Update Mobile Navigation Tab Highlight
+      document.getElementById('mobile-tab-calc').className = `flex flex-col items-center p-1.5 ${tabName === 'calculator' ? 'text-black font-extrabold' : 'text-gray-500'}`;
+      document.getElementById('mobile-tab-history').className = `flex flex-col items-center p-1.5 ${tabName === 'history' ? 'text-black font-extrabold' : 'text-gray-500'}`;
+      document.getElementById('mobile-tab-fleet').className = `flex flex-col items-center p-1.5 ${tabName === 'fleet' ? 'text-black font-extrabold' : 'text-gray-500'}`;
+    };
+
+    // Simple Toast Notification
+    function showNotification(msg, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-5 right-5 z-50 px-4 py-3 rounded-xl brutal-border font-bold text-xs brutal-shadow transition-all duration-300 transform translate-y-0 ${isError ? 'bg-red-500 text-white' : 'bg-[#B9F046] text-black'}`;
+      toast.innerText = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ==========================================
+    // 9. SERVICE WORKER PWA DINAMIS (Blob)
+    // ==========================================
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', (e) => self.skipWaiting());
+        self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+        self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+      `;
+      const blob = new Blob([swCode], { type: 'text/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    // Inisialisasi awal saat load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Hilangkan preview banner jika IS_PREVIEW = false
+      if (!IS_PREVIEW) {
+        const pBanner = document.getElementById('preview-banner');
+        if (pBanner) pBanner.style.display = 'none';
+      }
+
+      renderFleetCards();
+      onAircraftChange();
+      renderLogsTable();
+      updateAuthUI();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
